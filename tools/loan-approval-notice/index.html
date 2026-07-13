@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <meta property="og:title" content="全台房屋｜房貸核准助手">
+    <meta property="og:description" content="全台房屋專屬工具，一鍵自動計算月付金、手續費與專案明細，快速生成核准通知。">
+    <meta property="og:url" content="https://taiwanrentals.tw/tools/loan-approval-notice/">
+    <meta property="og:type" content="website">
+    <title>全台房屋｜核准助手 V22 (純淨版)</title>
+    <style>
+        body { font-family: -apple-system, "Microsoft JhengHei", sans-serif; background-color: #121212; color: #e0e0e0; padding: 15px; }
+        .container { max-width: 450px; margin: auto; background: #1e1e1e; padding: 20px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid #333; }
+        h2 { text-align: center; color: #4da3ff; margin-bottom: 20px; letter-spacing: 2px; }
+        .card { background: #2a2a2a; padding: 15px; border-radius: 10px; margin-bottom: 15px; border: 1px solid #333; }
+        label { display: block; margin-bottom: 5px; font-size: 13px; color: #aaa; }
+        input, select, textarea { width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 8px; border: 1px solid #444; background: #121212; color: #fff; box-sizing: border-box; font-size: 16px; }
+        /* 讓 placeholder 顏色更明顯一點的灰色 */
+        input::placeholder, textarea::placeholder { color: #666; }
+        .result-box { border: 1px solid #4da3ff !important; color: #4da3ff !important; font-weight: bold; background: #1a2635; }
+        button { width: 100%; padding: 15px; background: #007aff; border: none; color: white; font-size: 18px; font-weight: bold; border-radius: 8px; cursor: pointer; margin-top: 10px; }
+        #output { margin-top: 20px; background: #fff; color: #333; padding: 20px; border-radius: 8px; white-space: pre-wrap; display: none; line-height: 1.6; font-weight: 600; font-size: 15px; }
+        .copy-btn { background: #34c759; display: none; margin-top: 15px; }
+
+        /* 核心隱藏樣式 */
+        .hidden { display: none !important; }
+
+        /* 分隔線 */
+        .divider { height: 1px; background: #444; margin: 15px 0; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2>全台房屋｜核准助手</h2>
+
+    <div class="card">
+        <label>貸款專案 / 順位</label>
+        <select id="rank" onchange="updateUI()">
+            <option value="優貸方案（一順位）" selected>優貸方案（一順位）</option>
+            <option value="優貸方案（二順位）">優貸方案（二順位）</option>
+            <option value="滿貸方案（二順位）">滿貸方案（二順位）</option>
+            <option value="滿貸方案（三順位）">滿貸方案（三順位）</option>
+            <option value="房信專案（三順位）">房信專案（三順位）</option>
+            <option value="修繕貸">房屋修繕小額貸</option>
+        </select>
+
+        <label>借款人姓名</label>
+        <input type="text" id="name" placeholder="例如：周大錢">
+        <label>聯絡電話</label>
+        <input type="text" id="phone" placeholder="例如：0988888888">
+        <label>不動產地址</label>
+        <input type="text" id="address" placeholder="請輸入完整地址">
+    </div>
+    <div class="card">
+
+        <label>核准金額 (萬元)</label>
+        <input type="number" id="amountInput" placeholder="例如：170" oninput="calculate()">
+        <select id="amountSelect" class="hidden" onchange="calculate()">
+            <option value="6">6萬</option>
+            <option value="8">8萬</option>
+            <option value="10">10萬</option>
+        </select>
+        <label>方案條件 / 期數</label>
+        <select id="schemeNormal" onchange="updateUI()">
+            <option value="只繳息">只繳息 (對應月利率)</option>
+            <option value="本利攤">本利攤 (對應年利率)</option>
+        </select>
+        <select id="schemeRepair" class="hidden" onchange="calculate()">
+            <option value="12期">12期 (修繕貸固定基數)</option>
+            <option value="15期">15期 (修繕貸固定基數)</option>
+        </select>
+        <div id="advancedSettings">
+            <label id="rateLabel">月利率 (%)</label>
+            <input type="number" id="rate" step="0.01" placeholder="例如：1.8" oninput="calculate()">
+            <label>貸款年期 (年)</label>
+            <input type="number" id="years" placeholder="例如：20" oninput="calculate()">
+        </div>
+        <div class="divider"></div>
+        <label>月付款金額 (自動計算)</label>
+        <input type="text" id="monthlyPay" class="result-box" readonly placeholder="自動計算">
+        <label>違約金選項</label>
+        <select id="penalty">
+            <option value="不綁約無違約金">1.不綁約無違約金</option>
+            <option value="綁約24期25%" selected>2.綁約24期25%</option>
+            <option value="綁約15期月付（房信專案）">3.綁約15期月付（房信專案）</option>
+            <option value="無違約金（修繕貸）">4.無違約金（修繕貸）</option>
+        </select>
+    </div>
+    <div class="card">
+        <label>其他備註</label>
+        <textarea id="memo" rows="2" placeholder="例如：清償二順位代書"></textarea>
+    </div>
+    <button onclick="generateText()">生成核准通知</button>
+    <button id="copyBtn" class="copy-btn" onclick="copyToClipboard()">複製文字內容</button>
+    <div id="output"></div>
+</div>
+<script>
+    // 修繕貸固定基數表
+    const fixRates = {
+        "6": { "12期": 5703, "15期": 4669 },
+        "8": { "12期": 7604, "15期": 6265 },
+        "10": { "12期": 9504, "15期": 7831 }
+    };
+    function updateUI() {
+        const rank = document.getElementById('rank').value;
+
+        // 取得 UI 元素
+        const inpAmt = document.getElementById('amountInput');
+        const selAmt = document.getElementById('amountSelect');
+        const selSchemeNormal = document.getElementById('schemeNormal');
+        const selSchemeRepair = document.getElementById('schemeRepair');
+        const advancedSettings = document.getElementById('advancedSettings');
+        const penalty = document.getElementById('penalty');
+        const rateLabel = document.getElementById('rateLabel');
+        const rateInput = document.getElementById('rate');
+        if (rank === "修繕貸") {
+            // === 切換為修繕貸模式 ===
+            inpAmt.classList.add('hidden');
+            selAmt.classList.remove('hidden');
+
+            selSchemeNormal.classList.add('hidden');
+            selSchemeRepair.classList.remove('hidden');
+
+            advancedSettings.classList.add('hidden');
+
+            penalty.value = "無違約金（修繕貸）";
+        } else {
+            // === 切換為一般/房信/優貸/滿貸模式 ===
+            inpAmt.classList.remove('hidden');
+            selAmt.classList.add('hidden');
+
+            selSchemeNormal.classList.remove('hidden');
+            selSchemeRepair.classList.add('hidden');
+
+            advancedSettings.classList.remove('hidden');
+            // 房信專案特殊邏輯
+            if (rank === "房信專案（三順位）") {
+                selSchemeNormal.value = "本利攤";
+                rateLabel.innerText = "年利率 (%)";
+                // 僅在為空時給提示，若原本有輸入則保留
+                if(!rateInput.value) rateInput.placeholder = "例如：16";
+                penalty.value = "綁約15期月付（房信專案）";
+            } else {
+                // 一般專案、優貸、滿貸的通用邏輯
+                if (selSchemeNormal.value === "只繳息") {
+                    rateLabel.innerText = "月利率 (%)";
+                    rateInput.placeholder = "例如：1.8";
+                } else {
+                    rateLabel.innerText = "年利率 (%)";
+                    rateInput.placeholder = "例如：16";
+                }
+                // 優貸/滿貸預設違約金
+                if (penalty.value === "無違約金（修繕貸）" || penalty.value === "綁約15期月付（房信專案）") {
+                    penalty.value = "綁約24期25%";
+                }
+            }
+        }
+        calculate();
+    }
+    function calculate() {
+        const rank = document.getElementById('rank').value;
+        let pay = 0;
+        if (rank === "修繕貸") {
+            const amt = document.getElementById('amountSelect').value;
+            const scheme = document.getElementById('schemeRepair').value;
+            pay = fixRates[amt][scheme];
+        } else {
+            const amtVal = document.getElementById('amountInput').value;
+            const rateVal = document.getElementById('rate').value;
+            const yearsVal = document.getElementById('years').value;
+            if (amtVal && rateVal) {
+                const amt = parseFloat(amtVal) * 10000;
+                const rate = parseFloat(rateVal);
+                const years = parseInt(yearsVal) || 1;
+                const scheme = document.getElementById('schemeNormal').value;
+
+                if (scheme === "只繳息") {
+                    pay = Math.round(amt * (rate / 100));
+                } else {
+                    const monthlyRate = (rate / 100) / 12;
+                    const months = years * 12;
+                    if (monthlyRate > 0) {
+                        pay = Math.round(amt * (monthlyRate * Math.pow(1 + monthlyRate, months)) / (Math.pow(1 + monthlyRate, months) - 1));
+                    } else {
+                        pay = Math.round(amt / months);
+                    }
+                }
+            }
+        }
+        document.getElementById('monthlyPay').value = pay > 0 ? pay : "";
+    }
+    // 啟動時執行一次 UI 更新
+    window.onload = updateUI;
+    function generateText() {
+        const rank = document.getElementById('rank').value;
+        const name = document.getElementById('name').value || "未填寫";
+        const phone = document.getElementById('phone').value || "未填寫";
+        const address = document.getElementById('address').value || "未填寫";
+        const penalty = document.getElementById('penalty').value;
+        const monthlyPay = document.getElementById('monthlyPay').value || "0";
+        const memo = document.getElementById('memo').value || "無";
+        let amount, scheme, feeContent, titleContent, termLabel;
+        const prepay3 = parseInt(monthlyPay) * 3;
+        if (rank === "修繕貸") {
+            amount = document.getElementById('amountSelect').value;
+            scheme = document.getElementById('schemeRepair').value;
+            const fee15 = (parseFloat(amount) * 10000) * 0.15;
+
+            titleContent = "全台租賃｜房屋修繕小額貸\n核准條件通知";
+            termLabel = `• 貸款期限：${scheme}`;
+
+            feeContent = `• 預繳三期本息：${prepay3.toLocaleString()}元
+• 手續費15%：${fee15.toLocaleString()}元
+• 對保費：6,000元
+• 房屋免設定`;
+        } else {
+            amount = document.getElementById('amountInput').value || "0";
+            scheme = document.getElementById('schemeNormal').value;
+            const fee6 = (parseFloat(amount) * 10000) * 0.06;
+            const years = document.getElementById('years').value || "0";
+            const rate = document.getElementById('rate').value || "0";
+
+            titleContent = `全台租賃｜${rank}\n核准條件通知`;
+            termLabel = `• 貸款期限：${years}年期\n • 貸款利率：${rate}%`;
+
+            let scrivenerName = "代書規費";
+            let extraFee = "";
+            if (rank === "房信專案（三順位）") {
+                scrivenerName = "代書規費（含車馬費）";
+                extraFee = "\n• 對保費：6,000元";
+            }
+            feeContent = `• 預繳三期本息：${prepay3.toLocaleString()}元
+• 手續費6%：${fee6.toLocaleString()}元
+• ${scrivenerName}：30,000元${extraFee}`;
+        }
+        const result = `${titleContent}
+⸻
+【借款人資料】
+ • 姓名：${name}
+ • 電話：${phone}
+ • 不動產地址：${address}
+⸻
+【核准條件】
+ • 核准金額：${amount}萬元
+${termLabel}
+ • 月付款金額：${Number(monthlyPay).toLocaleString()}元
+ • 方案條件：${scheme}
+ • 違約金：${penalty}
+⸻
+【費用明細】
+${feeContent}
+⸻
+${memo}
+⸻
+全台租賃有限公司敬上`;
+        const outputDiv = document.getElementById('output');
+        outputDiv.innerText = result;
+        outputDiv.style.display = 'block';
+        document.getElementById('copyBtn').style.display = 'block';
+        outputDiv.scrollIntoView({behavior: "smooth"});
+    }
+    function copyToClipboard() {
+        const text = document.getElementById('output').innerText;
+        navigator.clipboard.writeText(text).then(() => {
+            alert('核准通知已複製！');
+        });
+    }
+</script>
+</body>
+</html>
