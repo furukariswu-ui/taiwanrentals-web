@@ -245,13 +245,14 @@ p { margin: 0 0 1em; }
   background: var(--color-dark-2); border-radius: var(--radius-card); padding: 26px;
   display: flex; flex-direction: column; gap: 14px;
 }
+.contact-form > div { display: flex; flex-direction: column; gap: 6px; }
 .contact-form input, .contact-form textarea {
   background: var(--color-dark); border: 1px solid var(--color-dark-border);
   border-radius: 8px; padding: 13px 14px; color: var(--color-cream-text);
-  font-size: 14px; font-family: inherit;
+  font-size: 14px; font-family: inherit; width: 100%; display: block;
 }
 .contact-form textarea { resize: vertical; }
-.contact-form label { font-size: 13px; color: var(--color-cream-text-soft); }
+.contact-form label { display: block; font-size: 13px; color: var(--color-cream-text-soft); }
 
 /* ---------- Footer ---------- */
 .site-footer {
